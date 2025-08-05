@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🌤️ Advanced Weather App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      transition: background 0.5s ease, color 0.5s ease;
+      color: white;
+      background: linear-gradient(to right, #aef997, #2f80ed);
+    }
+
+    header, footer {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 200px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    .result {
+      margin-top: 30px;
+      font-size: 18px;
+    }
+
+    .clock {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+
+    .dark-mode {
+      background: #111 !important;
+      color: #eee !important;
+    }
+
+    .weather-icon {
+      font-size: 40px;
+    }
+
+    .clear {
+      background: linear-gradient(to right, #56ccf2, #2f80ed);
+    }
+
+    .clouds {
+      background: linear-gradient(to right, #bdc3c7, #2c3e50);
+    }
+
+    .rain {
+      background: linear-gradient(to right, #4b79a1, #283e51);
+    }
+
+    .snow {
+      background: linear-gradient(to right, #e0eafc, #cfdef3);
+      color: black;
+    }
+
+    .sunny {
+      background: linear-gradient(to right, #f2994a, #f2c94c);
+      color: black;
+    }
+
+    body.dark-mode.clear,
+    body.dark-mode.clouds,
+    body.dark-mode.rain,
+    body.dark-mode.snow,
+    body.dark-mode.sunny {
+      background: #111 !important;
+      color: #eee !important;
+    }
+  </style>
+</head>
+<body class="clear">
+  <header>
+    <h1>🌤️ Weather App</h1>
+    <p>Enter a city name or use auto-detect to get the weather</p>
+    <div class="clock" id="clock"></div>
+    <button onclick="toggleDarkMode()">🌃 Toggle Dark Mode</button>
+  </header>
+
+  <main>
+    <input type="text" id="cityInput" placeholder="e.g. Delhi">
+    <button onclick="getWeather()">Get Weather</button>
+    <button onclick="detectLocation()">📍 Auto Detect</button>
+    <button onclick="startVoiceSearch()">🎤 Voice Search</button>
+    
+    <div id="favorites"></div>
+    <div class="result" id="result"></div>
+    <div id="tips"></div>
+    <div id="hourly"></div>
+    <div id="daily"></div>
+  </main>
+
+  <footer>
+    <p>Made by Akshitha</p>
+  </footer>
+
+  <script>
+    const apiKey = "a702783bae0102851944b7ef24b81728";
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function applyBackground(weather) {
+      const w = weather.toLowerCase();
+      const isDark = document.body.classList.contains("dark-mode");
+      document.body.classList.remove("clear", "clouds", "rain", "snow", "sunny");
+      let newClass = w.includes("clear") ? "clear" :
+                     w.includes("cloud") ? "clouds" :
+                     w.includes("rain") || w.includes("drizzle") ? "rain" :
+                     w.includes("snow") ? "snow" : "sunny";
+      document.body.classList.add(newClass);
+      if (isDark) {
+        document.body.classList.add("dark-mode");
+      }
+    }
+
+    function getTips(weather) {
+      if (weather.includes("Rain")) return "☔ Carry an umbrella!";
+      if (weather.includes("Clear")) return "😎 Wear sunglasses!";
+      if (weather.includes("Snow")) return "🧣 Stay warm, it's snowy!";
+      if (weather.includes("Cloud")) return "☁️ It's cloudy today.";
+      return "🌤️ Have a great day!";
+    }
+
+    async function getWeather(city = null) {
+      if (!city) city = document.getElementById("cityInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      const tipsDiv = document.getElementById("tips");
+      if (!city) return resultDiv.innerHTML = "Please enter a city.";
+
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("City not found!");
+        const data = await res.json();
+
+        const weather = data.weather[0].main;
+        applyBackground(weather);
+        tipsDiv.textContent = getTips(weather);
+
+        const icon = `http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+        resultDiv.innerHTML = `
+          <h2>${data.name}</h2>
+          <img src="${icon}" class="weather-icon" alt="Weather icon">
+          <p><strong>Weather:</strong> ${weather}</p>
+          <p><strong>Temp:</strong> ${data.main.temp}°C</p>
+          <p><strong>Humidity:</strong> ${data.main.humidity}%</p>
+          <p><strong>Wind:</strong> ${data.wind.speed} m/s</p>
+        `;
+
+        addFavoriteButton(city);
+        fetchForecast(data.coord.lat, data.coord.lon);
+      } catch (e) {
+        resultDiv.textContent = "❌ " + e.message;
+      }
+    }
+
+    function detectLocation() {
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const { latitude, longitude } = pos.coords;
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+        const res = await fetch(url);
+        const data = await res.json();
+        getWeather(data.name);
+      }, () => {
+        alert("Location access denied.");
+      });
+    }
+
+    async function fetchForecast(lat, lon) {
+      const forecastURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely,alerts&appid=${apiKey}&units=metric`;
+      const res = await fetch(forecastURL);
+      const data = await res.json();
+      showHourlyForecast(data.hourly);
+      showDailyForecast(data.daily);
+    }
+
+    function showHourlyForecast(hourly) {
+      let html = `<h3>🌙 Hourly Forecast (Next 6 Hours)</h3>`;
+      for (let i = 0; i < 6; i++) {
+        const hour = hourly[i];
+        const time = new Date(hour.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        html += `<p>${time}: ${hour.temp}°C, ${hour.weather[0].main}</p>`;
+      }
+      document.getElementById("hourly").innerHTML = html;
+    }
+
+    function showDailyForecast(daily) {
+      let html = `<h3>🗕️ 5-Day Forecast</h3>`;
+      for (let i = 1; i <= 5; i++) {
+        const day = daily[i];
+        const date = new Date(day.dt * 1000).toLocaleDateString();
+        html += `<p>${date}: ${day.temp.day}°C, ${day.weather[0].main}</p>`;
+      }
+      document.getElementById("daily").innerHTML = html;
+    }
+
+    function startVoiceSearch() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-IN';
+      recognition.start();
+      recognition.onresult = event => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("cityInput").value = transcript;
+        getWeather(transcript);
+      };
+    }
+
+    function addFavoriteButton(city) {
+      const favs = document.getElementById("favorites");
+      if (!document.getElementById("fav-" + city)) {
+        const btn = document.createElement("button");
+        btn.textContent = `⭐ ${city}`;
+        btn.id = "fav-" + city;
+        btn.onclick = () => getWeather(city);
+        favs.appendChild(btn);
+      }
+    }
+
+    setInterval(() => {
+      const current = document.getElementById("cityInput").value;
+      if (current) getWeather(current);
+    }, 600000);
+    
+  </script>
+</body>
+</html>
+

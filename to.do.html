@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>✍🏻 To-Do List✍🏻</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #7035a0, #d761d1);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .todo-container {
+      background-color: rgb(223, 139, 244);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgb(0, 0, 0);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #b00c43;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 75%;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #b00c43;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    
+
+    button{
+      padding: 10px 15px;
+      font-size: 16px;
+      margin-left: 10px;
+      background-color: #b00c43;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #d03d78;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+
+    li {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #f1f1f1;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    li.done {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    li:hover {
+      background-color: #e5c5d0;
+    }
+
+    .btn-small {
+      font-size: 14px;
+      margin-left: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-small:hover {
+      opacity: 0.7;
+    }
+    .clock {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+      body.dark-mode {
+      background: #000000;
+      color: #ffffff;
+    }
+
+    .dark-mode .todo-container {
+      background-color: #1e1e1e;
+      box-shadow: 0 0 15px rgba(255, 56, 165, 0.971);
+    }
+
+    .dark-mode h1 {
+      color: #ff6ec7;
+    }
+
+    .dark-mode input[type="text"] {
+      background: #333;
+      color: white;
+      border: 2px solid #e698c8;
+    }
+
+    .dark-mode li {
+      background: #2a2a2a;
+      color: rgb(188, 126, 200);
+    }
+
+    .dark-mode button {
+      background-color: #ff6ec7;
+    }
+
+    .dark-mode button:hover {
+      background-color: #e354b1;
+    }
+    footer{
+    
+      align-self: last baseline;
+    }
+  </style>
+</head>
+<body>
+<div class="todo-container">
+  <h1>📜To-Do List📜</h1>
+  <div class="clock" id="clock">🕐 Loading time...</div>
+  <input type="text" id="taskInput" placeholder="Enter your task...">
+  <button onclick="addTask()">Add</button>
+  <ul id="taskList"></ul><br>
+  <button onclick="toggleTheme()">🌓 Toggle Dark Mode</button>
+
+</div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+     function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+
+
+    function renderTasks() {
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+      tasks.forEach((task, index) => {
+        const li = document.createElement("li");
+        if (task.done) li.classList.add("done");
+        li.innerHTML = `
+          ${task.text}
+          <span>
+          <button class="btn-small" onclick="toggleTask(${index})">✔️</button>
+            <button class="btn-small" onclick="deleteTask(${index})">🗑️</button>
+          </span>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+     function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+      renderTasks();
+    }
+     function addTask() {
+      const input = document.getElementById("taskInput");
+      const taskText = input.value.trim();
+      if (taskText === "") return;
+      tasks.push({ text: taskText, done: false });
+      saveTasks();
+      renderTasks();
+      input.value = "";}
+
+    document.getElementById("taskInput").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        addTask();
+      }
+    });
+function toggleTask(index) {
+  tasks[index].done = !tasks[index].done;
+  saveTasks();
+  renderTasks();
+}
+
+ 
+   
+    // 🌗 Theme Toggle Logic
+    function toggleTheme() {
+      document.body.classList.toggle("dark-mode");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+    }
+
+    // 🌒 Load saved theme
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark-mode");
+    }
+
+    renderTasks();
+   
+    
+  </script>
+  <footer>2025@ MADE BY AKSHITHA </footer>
+</body>
+</html>
